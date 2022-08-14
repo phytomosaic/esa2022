@@ -57,20 +57,6 @@ knitr::opts_chunk$set(cache = FALSE, dev = 'svg', echo = TRUE,
 
 # Good morning!
 
-<!-- # Behavior of biological things -->
-
-<!-- - continuous -->
-
-<!-- - fuzzy -->
-
-<!-- - individualistic -->
-
-<!-- - nonlinear -->
-
-<!-- - randomness -->
-
-<!-- - uncertainty -->
-
 ---
 class: inverse middle center big-subsection
 
@@ -126,41 +112,33 @@ class: inverse middle center big-subsection
 
 # Software installation
 
-### Get R
+1\. Download and install R from: https://cran.r-project.org/  
 
-1. Download and install R from: https://cran.r-project.org/  
+2\. Optional: download and install Rstudio from: https://www.rstudio.com/products/rstudio/download/#download  
 
-2. Optional: download and install Rstudio from: https://www.rstudio.com/products/rstudio/download/#download  
+3\. Install packages (only once!)  
 
-.pull-left.w58[
-### Install packages
-```{r install-pkg, eval = FALSE}
-install.packages('vegan')     # community ecology
-install.packages('labdsv')    # community ecology
-install.packages('ade4')      # community ecology
-install.packages('ecodist')   # community ecology
-install.packages('fso')       # ordination
-install.packages('vegclust')  # clustering
-install.packages('ape')       # phylogenetics
-install.packages('picante')   # phylogenetics
-install.packages('mgcv')      # nonlinear regression
+```{r pkg-load-01, eval = FALSE}
+pkg <- c('vegan', 'labdsv', 'ade4', 'ecodist', 'ape', 'picante')
+install.packages(pkg)
 ```
-]
 
-.pull-right.w38[
-### Load packages
-```{r require-pkg, eval = TRUE}
-require('vegan')
-require('labdsv')
-require('ade4')
-require('ecodist')
-require('fso')
-require('vegclust')
-require('ape')
-require('picante')
-require('mgcv')
+4\. Load packages  
+
+```{r pkg-load-02, eval = FALSE}
+sapply(pkg, require, character.only = TRUE)
 ```
-]
+    
+```{r pkg-load-03, eval = TRUE, echo = FALSE}
+pkg <- c('vegan', 'labdsv', 'ade4', 'ecodist', 'ape', 'picante')
+snk <- capture.output(sapply(pkg, require, character.only = TRUE))
+```
+
+5\. Load some utility functions  
+
+```{r source-utils, eval = FALSE}
+source("https://github.com/phytomosaic/esa2022/raw/main/R/utils_color.R")
+```
 
 ---
 
@@ -193,12 +171,19 @@ m[is.na(m)] <- 777                     # assign value to any missing values
 
 ---
 
-# The Matrix
+# The data
 
-```{r the-matrix, eval=TRUE, echo=FALSE}
-load('./data/veg.rda')      # load the object
-veg$spe[1:10, c(8,9,18,54)] # head of species matrix
-```
+### Mafragh, Algeria vegetation data
+
+We will use one core dataset throughout this tutorial. The `veg` dataset gives information about spatial coordinates, species, environment, traits, and phylogeny for plants on the Mafragh coastal plain in North Africa. 
+
+Specifically, `veg` is a list containing five items:
+
+- `xy`  97 observations of 2 spatial coordinates
+- `spe` 97 observations of 56 plant species
+- `env` 97 observations of 11 soil environmental variables
+- `tra` 12 traits for 56 plant species
+- `phy` phylogeny for 56 plant species
 
 ---
 
@@ -216,9 +201,8 @@ ls()                    # list objects now in this local environment
 ```
 
 --
-
 <br></br>
-#### **Question**: how would you examine what's inside one of these objects?
+#### How would you examine what's inside one of these objects?
 
 ---
 class: inverse middle center big-subsection
@@ -229,39 +213,23 @@ class: inverse middle center big-subsection
 
 # Transformations
 
-#### Species: express abundances as 0/1 presence/absence
-
-```{r transf-spe-pa}
-s <- (spe > 0) * 1
-```
-
---
-
-#### Species: express abundances on log<sub>10</sub> scale
-
 ```{r transf-spe, eval=TRUE}
+### Species: express abundances as 0/1 presence/absence
+# (spe > 0) * 1
+
+### Species: express abundances on log10 scale
 spe <- data.frame(log10(spe + 1))
-```
 
---
-
-#### Environment: express variables as *z*-scores in [0,1] range
-
-```{r transf-env, eval=TRUE}
+### Environment: express variables in [0,1] range
 env <- data.frame(vegan::decostand(env, 'range'))
-# env <- data.frame(vegan::decostand(scale(env, center=F), 'range'))
-```
 
---
-
-#### Traits: express traits in [0,1] range 
-
-```{r transf-tra, eval=TRUE}
+### Traits: express traits in [0,1] range 
 tra <- data.frame(vegan::decostand(tra, 'range'))
 ```
 
-<br></br>
-See also: `vegan::decostand`  
+--
+
+#### Why do we transform community data?
 
 ---
 class: inverse middle center big-subsection
@@ -313,7 +281,7 @@ all(colSums(spe, na.rm=T) > 0) # expect TRUE, no empty species
 .pull-left.w50[
 ```{r plot-data-01, eval = FALSE}
 ### spatial
-plot(xy, pch=19, col='grey')
+plot(xy, pch=19, col='grey') #<<
 
 ### species
 vegan::tabasco(spe, col=get_palette())
@@ -331,7 +299,7 @@ plot(phy, cex=0.6, no.margin=TRUE)
 
 .pull-right.w50[
 ```{r plot-data-02, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width = 5.75}
-par(mfrow=c(1,1), las=1, oma=c(0,0,0,0), mar=c(2.7,2.1,0.1,0.1),
+par(mfrow=c(1,1), las=1, oma=c(0,0,0,0), mar=c(2.7,2.2,1.1,0.4),
     bty='L', mgp=c(1.4,0.3,0), tcl=0.2, pty='s')
 plot(xy, pch=19, col='grey', xlab='Easting', ylab='Northing',
      main='Map of sites in study area')
@@ -343,13 +311,12 @@ plot(xy, pch=19, col='grey', xlab='Easting', ylab='Northing',
 # Visualize data
 
 .pull-left.w50[
-#### Step-across adjustment
 ```{r plot-data-03, eval = FALSE}
 ### spatial
 plot(xy, pch=19, col='grey')
 
 ### species
-vegan::tabasco(spe, col=get_palette())
+vegan::tabasco(spe, col=get_palette()) #<<
 
 ### environment
 vegan::tabasco(env, col=get_palette())
@@ -365,6 +332,93 @@ plot(phy, cex=0.6, no.margin=TRUE)
 .pull-right.w50[
 ```{r plot-data-04, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width = 5.75}
 vegan::tabasco(spe, col=get_palette())
+```
+]
+
+---
+
+# Visualize data
+
+.pull-left.w50[
+```{r plot-data-05, eval = FALSE}
+### spatial
+plot(xy, pch=19, col='grey')
+
+### species
+vegan::tabasco(spe, col=get_palette())
+
+### environment
+vegan::tabasco(env, col=get_palette()) #<<
+
+### traits
+vegan::tabasco(tra, col=get_palette())
+
+### phylogeny
+plot(phy, cex=0.6, no.margin=TRUE)
+```
+]
+
+.pull-right.w50[
+```{r plot-data-06, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width = 5.75}
+vegan::tabasco(env, col=get_palette())
+```
+]
+
+---
+
+# Visualize data
+
+.pull-left.w50[
+```{r plot-data-07, eval = FALSE}
+### spatial
+plot(xy, pch=19, col='grey')
+
+### species
+vegan::tabasco(spe, col=get_palette())
+
+### environment
+vegan::tabasco(env, col=get_palette())
+
+### traits
+vegan::tabasco(tra, col=get_palette()) #<<
+
+### phylogeny
+plot(phy, cex=0.6, no.margin=TRUE)
+```
+]
+
+.pull-right.w50[
+```{r plot-data-08, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width = 5.75}
+vegan::tabasco(tra, col=get_palette())
+```
+]
+
+---
+
+# Visualize data
+
+.pull-left.w50[
+```{r plot-data-09, eval = FALSE}
+### spatial
+plot(xy, pch=19, col='grey')
+
+### species
+vegan::tabasco(spe, col=get_palette())
+
+### environment
+vegan::tabasco(env, col=get_palette())
+
+### traits
+vegan::tabasco(tra, col=get_palette())
+
+### phylogeny
+plot(phy, cex=0.6, no.margin=TRUE) #<<
+```
+]
+
+.pull-right.w50[
+```{r plot-data-10, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width = 5.75}
+plot(phy, cex=0.6, no.margin=TRUE)
 ```
 ]
 
@@ -386,8 +440,8 @@ class: inverse middle center big-subsection
 
 ```{r div-02, eval = TRUE, echo = TRUE}
 ### Alpha (per-site) diversity
-alpha <- rowSums(spe > 0)            # within-site
-(avgalpha <- mean(rowSums(spe > 0))) # average within-site
+alpha <- rowSums(spe > 0)  # within-site
+(avgalpha <- mean(alpha))  # average within-site
 ```
 
 ```{r div-03, eval = TRUE, echo = TRUE}
@@ -445,56 +499,42 @@ tabasco(as.matrix(E), col=get_palette())
 
 ---
 
-#    Dissimilarities
-
-.pull-left.w55[
-#### Step-across adjustment
-```{r diss-01-visible-code, eval = FALSE}
-D <- stepacross(d, 'shortest', toolong = 1)
-plot(d, D, xlab = 'Original', ylab = 'Stepacross')
-```
-]
-
-.pull-right.w45[
-```{r diss-02-invisible-eval, eval = TRUE, echo = FALSE, fig.height = 5.0, fig.width = 5.0}
-# this code should not render
-snk <- capture.output(D <- stepacross(d, 'shortest', toolong = 1))
-plot(d, D, xlab = 'Original', ylab = 'Stepacross', las=1, oma=c(0,0,0,0), mar=c(3.1,3.1,0.1,0.1), bty='L', mgp=c(2,0.3,0), tcl=0.2) 
-abline(0, 1, col='red', lwd=1.0)
-```
-]
-
----
-
-### Step-across adjustment
+# Loss of sensitivity problem
 
 .pull-left.w60[
-Given that SUs A and C share no species in common...
+How dissimilar are SUs A and C? They share no species in common...
 ```{r double-zero-01, eval = TRUE, echo = FALSE}
 m <- data.frame(matrix(c(1,1,0,0,0, 0,1,1,1,0, 0,0,0,1,1), nrow=3, byrow=T), 
                 row.names=paste0('su',c('A','B','C')))
 names(m) <- paste0('sp',1:5)
 m
 ```
+]
 
 --
 
+.pull-left.w60[
 ...Bray-Curtis will max out at 1.0...
 ```{r double-zero-03, eval = TRUE, echo = FALSE}
 vegdist(m, 'bray')
 ```
+]
 
 --
 
-...but `stepacross` replaces "too long" distances with shortest path.
+.pull-left.w60[
+...but `stepacross()` replaces "too long" distances with shortest path.
 ```{r double-zero-04, eval = TRUE, echo = FALSE}
 s <- capture.output(sa <- stepacross(vegdist(m, 'bray'))) ; sa
 ```
 ]
 
-.pull-right.w40[
-```{r double-zero-05, eval = TRUE, echo = FALSE, fig.height = 4.5, fig.width = 4.5}
-ecole::set_par(1, mar=c(1.5,1.5,0,0), pty='m')
+---
+
+# Stepacross adjustment
+
+```{r double-zero-05, eval = TRUE, echo = FALSE, fig.height = 5.9, fig.width = 5.9, fig.align = 'center'}
+par(mar=c(2,2,0,0), pty='m', bty='L')
 s <- scores(data.frame(x=c(0,0.5,1.0), y=c(0,0.3316625,0)))
 plot(s, asp=1, ylab='',xlab='')
 arrows(0,0,0.5,0.3316625, lwd=4, angle=15, col='#1034A9')
@@ -504,7 +544,23 @@ ordilabel(s, labels=c('A','B','C'), cex=1.2)
 text(scores(data.frame(x=c(0.23,0.50,0.77), y=c(0.2,-0.045,0.2))), 
           labels=c('0.6','1.2','0.6'), adj=0.5)
 ```
-]
+
+---
+
+# Stepacross adjustment
+
+
+```{r diss-01-visible-code, eval = FALSE}
+D <- stepacross(d, 'shortest', toolong = 1)
+plot(d, D, xlab = 'Original', ylab = 'Stepacross')
+```
+
+```{r diss-02-invisible-eval, eval = TRUE, echo = FALSE, fig.height = 5.0, fig.width = 5.0, fig.align = 'center'}
+snk <- capture.output(D <- stepacross(d, 'shortest', toolong = 1))
+par(pty='s', las=1, oma=c(0,0,0,0), mar=c(3.1,3.1,0.1,0.1), bty='L', mgp=c(2,0.3,0), tcl=0.2)
+plot(d, D, xlab = 'Original', ylab = 'Stepacross') 
+abline(0, 1, col='red', lwd=1.0)
+```
 
 
 ---
@@ -519,8 +575,8 @@ class: inverse middle center big-subsection
 ### Three different algorithms
 ```{r ord-unconstrained-01, eval = TRUE, echo = TRUE}
 m1 <- metaMDS(D, k=2, maxit=250, try=100, trymax=101, trace=0) # NMS
-m2 <- cmdscale(D, k=2, add=T)                         # PCoA
-m3 <- prcomp(spe)                                     # PCA
+m2 <- cmdscale(D, k=2, add=T)                                  # PCoA
+m3 <- prcomp(spe)                                              # PCA
 ```
 
 ```{r ord-unconstrained-02, eval = TRUE, echo = FALSE, fig.height = 4.5, fig.width = 12.0}
@@ -572,9 +628,11 @@ dbr <- dbrda(D_bc  ~ k2o + mg, data = env, add = 'lingoes')
 
 # dbRDA: the Swiss army knife 
 
+.pull-left.w85[
 ```{r ord-swissarmy-02, eval = TRUE, echo = FALSE, fig.height = 6.0, fig.width = 9.0, fig.align='center'}
-u <- ecole::colvec(1:NROW(spe))
-ecole::set_par(6)
+u <- colvec(1:NROW(spe))
+par(mfrow=c(2,3), pch=16, mar=c(4,4,1,0.5), oma=c(0,0,0,0), 
+    bty='L', pty='s', las=1, mgp=c(2, 0.4, 0), tcl=-0.2)
 plot(scores(pca, display='si'), col=u, xlab='PCA1',   ylab='PCA2')
 plot(scores(ca,  display='si'), col=u, xlab='CA1',    ylab='CA2')
 plot(scores(pco, display='si'), col=u, xlab='PCO1',   ylab='PCO2')
@@ -582,6 +640,17 @@ plot(scores(rda, display='si'), col=u, xlab='RDA1',   ylab='RDA2')
 plot(scores(cca, display='si'), col=u, xlab='CCA1',   ylab='CCA2')
 plot(scores(dbr, display='si'), col=u, xlab='dbRDA1', ylab='dbRDA2')
 ```
+]
+
+.pull-right.w15[
+
+##### What are the points?  
+
+##### What is the ordination space? 
+
+##### What does distance between points mean?
+
+]
 
 ---
 
@@ -604,23 +673,20 @@ Using `scores(x, scaling = ...)`:
 
 ---
 
-# NMS: the nuclear option
+# NMS: a sensible default
 
 ```{r ord-nms-show, eval = FALSE, echo = TRUE}
 nms <- vegan::metaMDS(D, k = 2, maxit = 500, try = 500, trymax = 501)
-plot(nms)
+plot(nms) # barebones -- what would you do to interpret this?
 stressplot(nms)
 ```
 
 ```{r ord-nms-hide, eval = TRUE, echo = FALSE, fig.height = 4.5, fig.width = 9.0, fig.align='center'}
 nms <- vegan::metaMDS(D, k = 2, maxit = 500, try = 100, trymax = 101, trace = 0)
-par(mfrow=c(1,2), las=1, oma=c(0,0,0,0), mar=c(4.1,4.1,1.1,0), bty='L', mgp=c(2,0.3,0), tcl=0.2)
-plot(nms)
+par(mfrow=c(1,2), las=1, oma=c(0,0,0,0), mar=c(2.6,3.1,0.2,0.2), bty='L', mgp=c(1.7,0.3,0), tcl=0.2)
+plot(nms) 
 stressplot(nms)
 ```
-
-<br></br>
-See also: `labdsv::bestnmds`
 
 ---
 class: inverse middle center big-subsection
@@ -632,6 +698,7 @@ class: inverse middle center big-subsection
 # Group clustering
 
 ### Hierarchical: Ward's clustering
+
 ```{r cluster-01, eval = TRUE, echo = TRUE, fig.height = 4.5, fig.width = 9.0, fig.align='center'}
 k   <- 7                                          # specify number of groups
 cl  <- hclust(D, method='ward.D2')                # clustering solution
@@ -646,6 +713,7 @@ plot(cl) ; rect.hclust(cl, k, border=rainbow(k))  # plot the dendrogram
 ### Non-hierarchical: fuzzy clustering
 
 ```{r cluster-02, eval = FALSE, echo = TRUE}
+install.packages(vegclust)
 require(vegclust)
 k     <- 7                                         # specify number of groups
 cl    <- vegclust::vegclustdist(D, mobileMemb=k)   # clustering solution
@@ -662,16 +730,20 @@ class: inverse middle center big-subsection
 
 #    Group differences
 
-#### First, define and visualize four groups (arbitrary example)
+#### First, define and visualize groups (arbitrary example)
 
-```{r permanova-00, eval = TRUE, echo = TRUE, fig.height = 4.5, fig.width = 5.0, fig.align='center'}
-brk <- quantile(env$k, probs=seq(0,1,by=0.25))            # define breaks
-grp <- cut(env$k, brk, c('lo','med','hi','veryhi'), TRUE) # groups
-plot(m1$points, pch=NA)                                   # visualize on NMS
-text(m1$points, labels=grp, col=as.numeric(grp))          # group memberships
-ordispider(m1, groups=grp, col=1:4)                       # group centroids
+```{r permanova-00, eval = FALSE, echo = TRUE, fig.height = 4.5, fig.width = 5.0, fig.align='center'}
+plot(m1$points, pch=NA, asp=1)                      # visualize on NMS
+text(m1$points, labels=grp, col=as.numeric(grp))    # group memberships
+ordispider(m1, groups=grp, col=1:k)                 # group centroids
 ```
 
+```{r permanova-grp-plot, eval = TRUE, echo = FALSE, fig.height = 4.5, fig.width = 5.0, fig.align='center'}
+par(las=1, oma=c(0,0,0,0), mar=c(2.7,2.1,1.1,0), bty='L', mgp=c(1.4,0.3,0), tcl=0.2, pty='s')
+plot(m1$points, pch=NA, asp=1)
+text(m1$points, labels=grp, col=as.numeric(grp))
+ordispider(m1, groups=grp, col=1:k)
+```
 ---
 
 #    Group differences
@@ -682,9 +754,9 @@ ordispider(m1, groups=grp, col=1:4)                       # group centroids
 adonis2(D ~ grp, permu=99)
 ```
 
-```{r permanova-02, eval = TRUE, echo = FALSE}
-# adonis2(D ~ grp, permu=99)$aov.tab
-```
+--
+
+#### Recall how we defined the groups in `grp`; are you comfortable with this hypothesis test?
 
 ---
 
@@ -692,11 +764,11 @@ adonis2(D ~ grp, permu=99)
 
 #### PERMDISP: test for differences in multivariate *dispersion*
 
-```{r permanova-03, eval = FALSE, echo = TRUE}
+```{r permanova-02, eval = FALSE, echo = TRUE}
 permutest(betadisper(D, grp), pairwise=TRUE, permu=99)
 ```
 
-```{r permanova-04, eval = TRUE, echo = FALSE}
+```{r permanova-03, eval = TRUE, echo = FALSE}
 tst <- permutest(betadisper(D, grp), pairwise=TRUE, permu=99)
 tst$tab
 cat('Permuted p-values:\n')
@@ -705,13 +777,19 @@ tst$pairwise$permuted
 
 ---
 
-# PERMANOVA for blocked design
+# PERMANOVA extensions
+
+#### Can use categorical and/or continuous predictors
+
+```{r permanova-04, eval = FALSE, echo = TRUE}
+adonis2(D ~ grp + elevation + clay + silt + conductivity, permu=99)
+```
 
 #### Blocked design: permutations must occur *within* strata
 
-```{r permanova-05, eval = TRUE, echo = TRUE}
+```{r permanova-05, eval = FALSE, echo = TRUE}
 blk <- factor(letters[sample(rep(1:12,len=nrow(env)))]) # arbitrary 'blocks'
-pm  <- how(nperm=999)             # set number of permutations
+pm  <- how(nperm=999)             # setup permutation object
 setBlocks(pm) <- blk              # permute only *within* blocks
 adonis2(D ~ grp, permu=pm)        # correct test
 ```
@@ -733,6 +811,7 @@ summary(iv)                     # IndVal observed
 ```
 
 ```{r indval-02, eval = TRUE, echo = FALSE}
+set.seed(44) # Bill Parks
 ### real groups
 iv  <- labdsv::indval(spe, grp) # indicator species analysis for *real* groups
 iv1 <- data.frame(cluster = iv$maxcls[iv$pval <= 0.05], 
@@ -754,6 +833,7 @@ summary(ivr)                    # IndVal expected at random
 ```
 
 ```{r indval-04, eval = TRUE, echo = FALSE}
+set.seed(44) # Bill Parks
 ### random groups
 rnd <- sample(grp, length(grp), replace=T) # define random groups by bootstrapping
 ivr <- labdsv::indval(spe, rnd) # indicator species analysis for *random* groups
@@ -812,20 +892,14 @@ text(0.9, -4, 'Convergent')
 ]
 .pull-right.w50[
 ```{r traits-03, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width=5.75}
-### Euclidean trait dissimilarity
-###   (traits already scaled 0-1)
 Dt  <- dist(tra, method='euc') 
-### calculate trait SES of mean pairwise 
-###   distances in sites
-ses <- picante::ses.mpd(spe, Dt, 
-         null.model='richness')
-### plot SES across a gradient
+ses <- picante::ses.mpd(spe, Dt, null.model='richness')
 u <- ifelse(ses$mpd.obs.p < 0.05, 'red','black')
 par(mfrow=c(1,1), las=1, oma=c(0,0,0,0), mar=c(2.7,2.1,1.1,0), bty='L', mgp=c(1.4,0.3,0), tcl=0.2, pty='s')
 plot(ses$mpd.obs.z ~ env$k, ylab='Trait SES(MPD)', 
      xlab='Soil potassium', col=u)
-abline(lm(ses$mpd.obs.z ~ env$k)) # regression line
-abline(h=0, lty=2)                # random-traits line
+abline(lm(ses$mpd.obs.z ~ env$k))
+abline(h=0, lty=2)
 text(0.9, 1, 'Divergent')
 text(0.9, -4, 'Convergent')
 ```
@@ -836,7 +910,7 @@ text(0.9, -4, 'Convergent')
 # Community weighted means
 
 .pull-left.w50[
-#### Nonlinear trait-environment correlations
+#### (Weighted) mean trait value per SU
 ```{r cwm-01, eval = FALSE, echo = TRUE}
 ### function to make CWM matrix
 `makecwm` <- function (spe, tra) {
@@ -861,7 +935,6 @@ tabasco(cwm, col=get_palette())
 
 .pull-right.w50[
 ```{r cwm-02, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width=5.75}
-### Nonlinear trait-environment correlations
 `makecwm` <- function (spe, tra) {
   spe <- as.matrix(spe)
   tra <- as.matrix(tra)
@@ -882,16 +955,24 @@ tabasco(cwm, col=get_palette())      # visualize
 # Ordination of CWM traits
 
 .pull-left.w50[
+#### Admits nonlinear trait-enviro relationship
 ```{r cwm-03, eval = FALSE, echo = TRUE}
 ### NMS based on abundance-weighted traits
 m <- metaMDS(cwm, 'altGower', k=2, trace=0)
 
 ### SUs sized relative to a leaf trait
-plot(m, cex=cwm$lfp) # sites in *traits space*
+plot(m, cex=cwm$lfp)
 
-### overlay enviro variable in traits space
+### overlay enviro variable
 o <- ordisurf(m, env$k, col=2, add=T)
 ```
+
+##### What are the points?  
+
+##### What is the ordination space?  
+
+##### What does distance between points indicate?
+
 ]
 
 .pull-right.w50[
@@ -904,75 +985,37 @@ o <- ordisurf(m, env$k, col=2, add=T)
 
 ---
 
-# Ordination of CWM traits
-
-.pull-left.w50[
-```{r cwm-05, eval = FALSE, echo = TRUE}
-### get scores
-s <- scores(m$points, choices=1:2)
-
-### setup empty plot area
-plot(s, asp=1, type='n', main='red = annual')
-
-### label points with species names
-orditorp(s, disp='si', labels=rownames(s), 
-         col=c(1,2)[tra$annual+1])
-
-### overlay enviro fit vectors
-plot(envfit(s, tra), p.max=0.001, col='darkblue')
-```
-]
-
-.pull-right.w50[
-```{r cwm-06, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width = 5.75}
-s <- scores(m$points, choices=1:2)
-plot(s, asp=1, type='n', main='red = annual')
-orditorp(s, disp='si', labels=rownames(s), 
-         col=c(1,2)[tra$annual+1])
-# plot(envfit(s, tra), p.max=0.001, col='darkblue')
-```
-]
-
-
----
-
 # Fourth-corner analysis and RLQ
 
 ### the RLQ method
-.pull-left.w50[
+
 ```{r rlq-01, eval = FALSE, echo = TRUE}
-o_spe <- 
-  dudi.coa(spe, F) # Correspondence Analysis
-o_env <- 
-  dudi.hillsmith(env, F, row.w = o_spe$lw)
-o_tra <- 
-  dudi.hillsmith(tra, F, row.w = o_spe$cw)
-r <- rlq(o_env, o_spe, o_tra, F)
+require(ade4)
+o_spe <- dudi.coa(spe, F) # Correspondence Analysis
+o_env <- dudi.hillsmith(env, F, row.w = o_spe$lw)
+o_tra <- dudi.hillsmith(tra, F, row.w = o_spe$cw)
+r     <- rlq(o_env, o_spe, o_tra, F)
 plot(r)
 summary(r)
-```
-]
-
-.pull-right.w50[
-```{r rlq-02, eval = TRUE, echo = FALSE, fig.height = 7.75, fig.width=5.75}
-o_spe  <- dudi.coa(spe, F) # CA
-o_env  <- dudi.hillsmith(env, F, row.w = o_spe$lw)
-o_tra  <- dudi.hillsmith(tra, F, row.w = o_spe$cw)
-plot(r <- rlq(o_env, o_spe, o_tra, F))
-```
-]
-
----
-
-# Fourth-corner analysis and RLQ
-
-```{r rlq-03, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
 randtest(r)
 ```
 
 ---
 
 # Fourth-corner analysis and RLQ
+
+```{r rlq-02, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.align = 'center'}
+o_spe  <- dudi.coa(spe, F) # CA
+o_env  <- dudi.hillsmith(env, F, row.w = o_spe$lw)
+o_tra  <- dudi.hillsmith(tra, F, row.w = o_spe$cw)
+plot(r <- rlq(o_env, o_spe, o_tra, F))
+```
+
+---
+
+# Fourth-corner analysis and RLQ
+
+#### Trait correlations
 
 ```{r rlq-04, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
 fourthcorner.rlq(r, type='Q.axes')
@@ -981,6 +1024,8 @@ fourthcorner.rlq(r, type='Q.axes')
 ---
 
 # Fourth-corner analysis and RLQ
+
+#### Environment correlations
 
 ```{r rlq-05, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
 fourthcorner.rlq(r, type='R.axes')
@@ -996,11 +1041,11 @@ class: inverse middle center big-subsection
 
 # Community phylogenetics: basic plotting
 
-```{r phyloplot-01, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
-par(mfrow=c(1,3), mar=c(0,0,0,0), oma=c(0,0,0,0)) # plotting parameters
-plot(phy, cex=0.75, no.margin=T)                  # basic plotting
+```{r phyloplot-01, eval = TRUE, echo = TRUE, fig.width = 11.0, fig.align = 'center'}
+par(mfrow=c(1,3), mar=c(0,0,0,0), oma=c(0,0,0,0))           # plotting parameters
+plot(phy, cex=0.75, no.margin=T)                            # basic plotting
 plot(phy, cex=0.75, tip.color=colvec(tra$lfp), no.margin=T) # color labels by traits
-plot(phy, cex=0.75, label.offset=48, no.margin=T) # symbolize trait values at tips
+plot(phy, cex=0.75, label.offset=48, no.margin=T)           # symbolize trait values at tips
 tiplabels(pch=21, bg = c(tra$annual),    adj=0)
 tiplabels(pch=21, bg = c(tra$biennial),  adj=15)
 tiplabels(pch=21, bg = c(tra$perennial), adj=30)
@@ -1036,35 +1081,36 @@ phy_div <-
 ```
 ]
 
-.pull-right.w50[
+.pull-right.w47[
 ```{r phyloalpha-02, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width=5.75}
-head(phy_div)
-# pairs(phy_div)
+head(phy_div, 12)
 ```
 ]
 
 ---
 
+# Phylogenetic diversity - beta
+
 ```{r phylo-beta-01, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
-### Phylogenetic diversity - beta
 ### correlation between phylogenetic and taxonomic beta-diversity
-Dp <- phylosor(spe, phy) # phylogenetic distances
-protest(Dp, D)           # procrustes correlation
-### side-by-side NMS ordinations
+Dp <- picante::phylosor(spe, phy) # phylogenetic distances
+protest(Dp, D)                    # procrustes correlation
+```
+
+```{r noprint-00, eval = FALSE, echo = FALSE}
 par(mfrow=c(1,2))
-plot(scores(metaMDS(D)$points ), col=colvec(1:97), pch=19, main='Taxonomic NMS')
-plot(scores(metaMDS(Dp)$points), col=colvec(1:97), pch=19, main='Phylogenetic NMS')
+plot(scores(metaMDS(D, trace=0)$points ), col=colvec(1:97), pch=19, main='Taxonomic NMS')
+plot(scores(metaMDS(Dp, trace)$points), col=colvec(1:97), pch=19, main='Phylogenetic NMS')
 ```
 
 ---
+
+# Phylogenetic signal
 
 ```{r phylosignal-01, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
-### Phylogenetic signal
-### detect phylogenetic signal for traits
-K <- sapply(tra, FUN=function(j){
+sapply(tra, FUN=function(j){
   names(j) <- rownames(tra)
-  round(picante::phylosignal(j, ape::multi2di(phy)),6)})
-as.matrix(K)
+  round(picante::phylosignal(j, ape::multi2di(phy)), 4)})
 ```
 
 ---
@@ -1074,90 +1120,72 @@ class: inverse middle center big-subsection
 
 ---
 
-# Community spatial analysis
+# Mantel test
 
 ```{r mantel-01, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
-### Mantel test
-E <- dist(xy)                            # spatial distance matrix
-vegan::mantel(D, E, method='spearman')   # spearman *rank* correlation
-# in `ecodist` package, we also get useful bootstrap CIs:
-ecodist::mantel(D ~ E, mrank=T)          # spearman *rank* correlation
-brk <- seq(0, round(max(E),-1), by=10)
-plot(ecodist::mgram(D, E, breaks=brk, nperm=99, mrank=T, nboot=500))
-abline(h=0, col='red')
-plot(vegan::mantel.correlog(D, E, break.pts=brk, 
-      cutoff=F, r.type='spearman',
-      nperm=99, mult='holm', progressive=T))
+E <- dist(xy)                              # spatial distance matrix
+vegan::mantel(D, E, method = 'spearman')   # spearman *rank* correlation
+```
+
+```{r mantel-02, eval = FALSE}
+ecodist::mantel(D ~ E, mrank = T) # alternative with useful bootstrap CIs
 ```
 
 ---
 
-# MRM: multiple regression on distance matrices
+# Mantel correlogram
 
-```{r mrm-01, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
-# species dissimilarities are related to space (extremely weakly) and
+```{r mantel-03, eval = FALSE, echo = TRUE}
+plot(vegan::mantel.correlog(D, E, cutoff=F, r.type='spearman', nperm=99, mult='holm'))
+```
+
+```{r mantel-04, eval = TRUE, echo = FALSE, fig.height = 4.5, fig.width = 8.75, fig.align = 'center'}
+par(oma=c(0,0,0,0), mar=c(4.1,4.1,0.1,0.1), las=1, bty='L')
+plot(vegan::mantel.correlog(D, E, cutoff=F, r.type='spearman', nperm=99, mult='holm'))
+```
+
+---
+
+# Multiple regression on distance matrices
+
+.pull-left[
+```{r mrm-01, eval = TRUE, echo = TRUE}
+# species dissimilarities are related 
+#  to space (extremely weakly) and
 #   potassium (moderately)
-ecodist::MRM(D ~ dist(xy) + dist(env$k), nperm=999)
-# abundance of cosmopolitan bulrush is NOT related to space,
-#   but is related to potassium (moderately)
-ecodist::MRM(dist(spe$bolboschoenus_maritimus) ~ dist(xy) + dist(env$k), nperm=999)
+ecodist::MRM(
+  D 
+   ~ dist(xy) + dist(env$k))
+
 ```
+]
+
+.pull-right[
+```{r mrm-02, eval = TRUE, echo = TRUE}
+# abundance of cosmopolitan bulrush 
+#  is NOT related to space, but is 
+#   related to potassium (moderately)
+ecodist::MRM(
+  dist(spe$bolboschoenus) 
+   ~ dist(xy) + dist(env$k))
+```
+]
 
 ---
 
-```{r pcnm-01, eval = TRUE, echo = TRUE, fig.height = 5.75, fig.width=5.75}
-### PCNM: principle coordinates of neighbor matrices.
-E   <- dist(xy)            # euclidean distances between sites
-pc  <- pcnm(E)             # principal coordinates of neighbor matrices
-par(mfrow=c(2,3), oma=c(0,0,0,0), mar=c(2,2,2,0)) # map PCNMs across study area
-v   <- 2^(0:5)             # select PCNMs at increasingly fine scale
-for(i in seq_along(v)) {
-  ordisurf(xy, scores(pc, choices=v[i]), bubble=3, main=paste0('PCNM ',v[i]))
-}
-rs    <- rowSums(spe) / sum(spe)  # sites weighted by abundances
-pc    <- pcnm(E, w=rs)            # *weighted* PCNMs
-ord   <- cca(spe ~ scores(pc))    # CCA: species constrained by space
-msord <- mso(ord, xy)             # multiscale ordination
-msoplot(msord, expl=T)            # MSO variogram: spatial trend in residuals?
-(vp <- varpart(D, env, scores(pc)))
-plot(vp, bg = c(2,4))
-text(-0.2, 0.3, 'Environment', cex=0.7)
-text(0.5, 0.3, 'Spatially-\nstructured\nenviro', cex=0.7)
-text(1.2, 0.3, 'Space', cex=0.7)
-### broad and local structure
-pc_broad <- scores(pc)[,1:10]
-pc_local <- scores(pc)[,11:59]
-(vp <- varpart(D, env, pc_broad, pc_local))
-plot(vp, cex=0.7, bg=2:5)
-text(-0.2, 0.3, 'Environment', cex=0.7)
-text(0.5, 0.55, 'Broad-\nstructured\nenviro', cex=0.7)
-text(1.2, 0.3, 'Broad\nspatial', cex=0.7)
-text(-0.5, -0.75, 'Local-\nstructured\nenviro', cex=0.7)
-text(0.5, -1.15, 'Local\nspatial', cex=0.7)
-### soil physical, soil chemistry, and spatial predictors
-(vp <- varpart(D,                               # dissimilarities
-               ~ clay + sand + silt,            # soil fractions
-               ~ mg + k + conductivity + na_l,  # soil chemistry
-               scores(pc),                      # spatial predictors
-               data=env))
-plot(vp, cex=0.7, bg=2:5)
-text(-0.2, 0.3, 'Soil fractions', cex=0.7)
-text(1.2, 0.3, 'Soil chemistry', cex=0.7)
-text(0.5, -1.15, 'Spatial', cex=0.7)
-text(-0.5, -0.75, 'Spatially-\nstructured\nsoil fractions', cex=0.7)
-text(1.5, -0.75, 'Spatially-\nstructured\nsoil chemistry', cex=0.7)
-```
-
----
 class: inverse middle center big-subsection
 
-# Conclusion
+---
+
+class: inverse middle center big-subsection
+
+# Wrap up
 
 ---
 
 # Acknowledgments
 
-#### ESA Vegetation Section  
+### ESA Vegetation Section  
 
 Martin Dovciak  
 Kyle Palmquist  
@@ -1166,7 +1194,111 @@ Morgan Frost
 Carissa Brown  
 Samuel Jordan  
 
+### Further details
+
+https://ecol.shinyapps.io/esa_tutorial/
+
+
+---
+
+class: inverse middle center big-subsection
+
+# More??
+
+---
+
+# PCNM
+
+PCNM: principle coordinates of neighbor matrices
+
+```{r pcnm-01, eval = TRUE, echo = TRUE}
+E   <- dist(xy)            # euclidean distances between sites
+pc  <- pcnm(E)             # principal coordinates of neighbor matrices
+```
+
+```{r pcnm-02, eval = TRUE, echo = FALSE, fig.height = 4.5, fig.width=9.75}
+par(mfrow=c(2,3), oma=c(0,0,0,0), mar=c(2,2,2,0)) # map PCNMs across study area
+v   <- 2^(0:5)             # select PCNMs at increasingly fine scale
+for(i in seq_along(v)) {
+  ordisurf(xy, scores(pc, choices=v[i]), bubble=3, main=paste0('PCNM ',v[i]))
+}
+```
+
+---
+
+# PCNM
+
+```{r pcnm-03a, eval = TRUE, echo = TRUE}
+rs <- rowSums(spe) / sum(spe)      # sites weighted by abundances
+pc <- pcnm(E, w=rs)                # *weighted* PCNMs
+vp <- varpart(D, env, scores(pc))  # variation partitioning
+```
+
+```{r pcnm-03b, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width=7.75, fig.align = 'center'}
+plot(vp, bg = c(2,4))
+text(-0.2, 0.3, 'Environment', cex=0.7)
+text(0.5, 0.3, 'Spatially-\nstructured\nenviro', cex=0.7)
+text(1.2, 0.3, 'Space', cex=0.7)
+```
+
+---
+
+# PCNM
+
+.pull-left[
+```{r pcnm-04a, eval = TRUE, echo = TRUE}
+### broad and local structure
+pc_broad <- scores(pc)[,1:10]
+pc_local <- scores(pc)[,11:59]
+vp       <- varpart(D, env, pc_broad, pc_local)
+```
+]
+
+.pull-right[
+```{r pcnm-04b, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width=7.75, fig.align = 'center'}
+plot(vp, cex=0.7, bg=2:5)
+text(-0.2, 0.3, 'Environment', cex=0.7)
+text(0.5, 0.55, 'Broad-\nstructured\nenviro', cex=0.7)
+text(1.2, 0.3, 'Broad\nspatial', cex=0.7)
+text(-0.5, -0.75, 'Local-\nstructured\nenviro', cex=0.7)
+text(0.5, -1.15, 'Local\nspatial', cex=0.7)
+```
+]
+
+---
+
+# PCNM
+
+.pull-left[
+```{r pcnm-05a, eval = TRUE, echo = TRUE}
+### soil physical, soil chemistry, and spatial predictors
+vp <- varpart(
+  D,                               # dissimilarities
+  ~ clay + sand + silt,            # soil fractions
+  ~ mg + k + conductivity + na_l,  # soil chemistry
+  scores(pc),                      # spatial predictors
+  data = env)                      # environmental dataset
+```
+]
+
+.pull-right[
+```{r pcnm-05b, eval = TRUE, echo = FALSE, fig.height = 5.75, fig.width=5.75, fig.align = 'center'}
+plot(vp, cex=0.7, bg=2:5, oma=c(0,0,0,0), mar=c(0,0,0,0))
+text(-0.2, 0.3, 'Soil fractions', cex=0.7)
+text(1.2, 0.3, 'Soil chemistry', cex=0.7)
+text(0.5, -1.15, 'Spatial', cex=0.7)
+text(-0.5, -0.75, 'Spatially-\nstructured\nsoil fractions', cex=0.7)
+text(1.5, -0.75, 'Spatially-\nstructured\nsoil chemistry', cex=0.7)
+```
+]
 
 ---
 class: inverse middle center big-subsection
+
+# Conclusion
+
+---
+
+class: inverse middle center big-subsection
+
 ---
